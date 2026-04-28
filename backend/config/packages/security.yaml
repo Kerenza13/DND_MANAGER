@@ -1,0 +1,48 @@
+security:
+    password_hashers:
+        App\Entity\User:
+            algorithm: auto
+
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User
+                property: email
+
+    firewalls:
+        main:
+            lazy: true
+            provider: app_user_provider
+
+            # IMPORTANT: enables session persistence
+            context: main
+
+            json_login:
+                check_path: /api/login
+                username_path: email
+                password_path: password
+
+                # Optional but recommended
+                success_handler: null
+                failure_handler: null
+
+            logout:
+                path: /api/logout
+
+            # MUST be false for session-based auth
+            stateless: false
+
+    access_control:
+      - { path: ^/api/register, roles: PUBLIC_ACCESS }
+      - { path: ^/api/login, roles: PUBLIC_ACCESS }
+      - { path: ^/api/health, roles: PUBLIC_ACCESS }
+      - { path: ^/api, roles: ROLE_USER }
+
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10
