@@ -1,7 +1,7 @@
 security:
     password_hashers:
-        App\Entity\User:
-            algorithm: auto
+        # Use the interface rather than the concrete class for better abstraction
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
     providers:
         app_user_provider:
@@ -10,32 +10,34 @@ security:
                 property: email
 
     firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
         main:
             lazy: true
             provider: app_user_provider
 
-            # IMPORTANT: enables session persistence
-            context: main
-
+            # Since we are using React, we want to handle login via JSON
             json_login:
-                check_path: /api/login
+                check_path: api_login # Matches the route name in AuthController
                 username_path: email
                 password_path: password
 
-                # Optional but recommended
-                success_handler: null
-                failure_handler: null
-
             logout:
-                path: /api/logout
+                path: api_logout # Matches the route name in AuthController
+                # Optional: where to redirect after logout (usually a 204 or success JSON)
+                target: api_health
 
-            # MUST be false for session-based auth
+            # Ensure session-based auth is enabled (Cookie-based)
             stateless: false
 
     access_control:
+      # PUBLIC_ACCESS for entry points
       - { path: ^/api/register, roles: PUBLIC_ACCESS }
       - { path: ^/api/login, roles: PUBLIC_ACCESS }
       - { path: ^/api/health, roles: PUBLIC_ACCESS }
+      # Everything else under /api requires a logged-in user
       - { path: ^/api, roles: ROLE_USER }
 
 when@test:
