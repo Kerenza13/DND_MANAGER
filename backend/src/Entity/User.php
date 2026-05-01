@@ -2,73 +2,101 @@
 
 namespace App\Entity;
 
-use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
-#[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: "users")]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+#[ORM\Entity]
+class User
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50, unique: true)]
-    private string $username;
+    #[ORM\Column(length: 180, unique: true)]
+    private ?string $email = null;
 
-    #[ORM\Column(length: 100, unique: true)]
-    private string $email;
+    #[ORM\Column]
+    private array $roles = [];
 
     #[ORM\Column(length: 255)]
-    private string $password;
-
-    #[ORM\Column(type: 'json')]
-    private array $roles = ['ROLE_USER'];
+    private ?string $password = null;
 
     #[ORM\Column]
-    private bool $isActive = true;
+    private array $role = [];
 
-    #[ORM\Column]
-    private \DateTimeImmutable $createdAt;
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Character::class, orphanRemoval: true)]
+    private Collection $characters;
 
-    #[ORM\Column]
-    private \DateTimeImmutable $updatedAt;
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: CharacterExport::class, orphanRemoval: true)]
+    private Collection $characterExports;
 
     public function __construct()
     {
-        $this->createdAt = new \DateTimeImmutable();
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->characters = new ArrayCollection();
+        $this->characterExports = new ArrayCollection();
     }
 
-    public function getId(): ?int { return $this->id; }
+    // --- Getters and Setters ---
 
-    public function getUsername(): string { return $this->username; }
-    public function setUsername(string $username): self { $this->username = $username; return $this; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
 
-    public function getEmail(): string { return $this->email; }
-    public function setEmail(string $email): self { $this->email = $email; return $this; }
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
 
-    public function getPassword(): string { return $this->password; }
-    public function setPassword(string $password): self { $this->password = $password; return $this; }
+    public function setEmail(string $email): static
+    {
+        $this->email = $email;
+        return $this;
+    }
 
     public function getRoles(): array
     {
-        return array_unique($this->roles);
+        return $this->roles;
     }
 
-    public function setRoles(array $roles): self
+    public function setRoles(array $roles): static
     {
         $this->roles = $roles;
         return $this;
     }
 
-    public function getUserIdentifier(): string
+    public function getPassword(): ?string
     {
-        return $this->email;
+        return $this->password;
     }
 
-    public function eraseCredentials(): void {}
+    public function setPassword(string $password): static
+    {
+        $this->password = $password;
+        return $this;
+    }
+
+    public function getRole(): array
+    {
+        return $this->role;
+    }
+
+    public function setRole(array $role): static
+    {
+        $this->role = $role;
+        return $this;
+    }
+
+    public function getCharacters(): Collection
+    {
+        return $this->characters;
+    }
+
+    public function getCharacterExports(): Collection
+    {
+        return $this->characterExports;
+    }
 }

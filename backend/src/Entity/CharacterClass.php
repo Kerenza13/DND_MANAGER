@@ -8,26 +8,32 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-class Race
+class CharacterClass
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(length: 50)]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(nullable: true)]
-    private ?array $statBonuses = null;
+    #[ORM\Column]
+    private ?int $hitDie = null;
+
+    #[ORM\Column(length: 50)]
+    private ?string $primaryAbility = null;
 
     #[ORM\Column(nullable: true)]
-    private ?array $traits = null;
+    private ?array $savingThrow = null;
 
-    #[ORM\OneToMany(mappedBy: 'race', targetEntity: Character::class)]
+    #[ORM\Column(nullable: true)]
+    private ?array $features = null;
+
+    #[ORM\OneToMany(mappedBy: 'characterClass', targetEntity: Character::class)]
     private Collection $characters;
 
     public function __construct()
@@ -64,25 +70,47 @@ class Race
         return $this;
     }
 
-    public function getStatBonuses(): ?array
+    public function getHitDie(): ?int
     {
-        return $this->statBonuses;
+        return $this->hitDie;
     }
 
-    public function setStatBonuses(?array $statBonuses): static
+    public function setHitDie(int $hitDie): static
     {
-        $this->statBonuses = $statBonuses;
+        $this->hitDie = $hitDie;
         return $this;
     }
 
-    public function getTraits(): ?array
+    public function getPrimaryAbility(): ?string
     {
-        return $this->traits;
+        return $this->primaryAbility;
     }
 
-    public function setTraits(?array $traits): static
+    public function setPrimaryAbility(string $primaryAbility): static
     {
-        $this->traits = $traits;
+        $this->primaryAbility = $primaryAbility;
+        return $this;
+    }
+
+    public function getSavingThrow(): ?array
+    {
+        return $this->savingThrow;
+    }
+
+    public function setSavingThrow(?array $savingThrow): static
+    {
+        $this->savingThrow = $savingThrow;
+        return $this;
+    }
+
+    public function getFeatures(): ?array
+    {
+        return $this->features;
+    }
+
+    public function setFeatures(?array $features): static
+    {
+        $this->features = $features;
         return $this;
     }
 

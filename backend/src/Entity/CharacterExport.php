@@ -2,10 +2,9 @@
 
 namespace App\Entity;
 
-use App\Repository\CharacterExportRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: CharacterExportRepository::class)]
+#[ORM\Entity]
 class CharacterExport
 {
     #[ORM\Id]
@@ -13,34 +12,22 @@ class CharacterExport
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(inversedBy: 'exports')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private ?CharacterSheet $character = null;
-
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(length: 255)]
     private ?string $filePath = null;
 
-    #[ORM\Column(length: 20)]
-    private string $type = 'pdf';
+    #[ORM\ManyToOne(inversedBy: 'characterExports')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Character $charRelation = null;
 
-    #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $snapshot = null;
+    #[ORM\ManyToOne(inversedBy: 'characterExports')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $user = null;
 
-    #[ORM\Column]
-    private \DateTimeImmutable $createdAt;
+    // --- Getters and Setters ---
 
-    public function __construct()
+    public function getId(): ?int
     {
-        $this->createdAt = new \DateTimeImmutable();
-    }
-
-    // ---------------- GETTERS ----------------
-
-    public function getId(): ?int { return $this->id; }
-
-    public function getCharacter(): ?CharacterSheet
-    {
-        return $this->character;
+        return $this->id;
     }
 
     public function getFilePath(): ?string
@@ -48,44 +35,31 @@ class CharacterExport
         return $this->filePath;
     }
 
-    public function getType(): string
-    {
-        return $this->type;
-    }
-
-    public function getSnapshot(): ?array
-    {
-        return $this->snapshot;
-    }
-
-    public function getCreatedAt(): \DateTimeImmutable
-    {
-        return $this->createdAt;
-    }
-
-    // ---------------- SETTERS ----------------
-
-    public function setCharacter(?CharacterSheet $character): self
-    {
-        $this->character = $character;
-        return $this;
-    }
-
-    public function setFilePath(?string $filePath): self
+    public function setFilePath(string $filePath): static
     {
         $this->filePath = $filePath;
         return $this;
     }
 
-    public function setType(string $type): self
+    public function getCharRelation(): ?Character
     {
-        $this->type = $type;
+        return $this->charRelation;
+    }
+
+    public function setCharRelation(?Character $charRelation): static
+    {
+        $this->charRelation = $charRelation;
         return $this;
     }
 
-    public function setSnapshot(?array $snapshot): self
+    public function getUser(): ?User
     {
-        $this->snapshot = $snapshot;
+        return $this->user;
+    }
+
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
         return $this;
     }
 }
