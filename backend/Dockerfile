@@ -1,20 +1,24 @@
-FROM php:8.2-cli
+FROM php:8.2-fpm
 
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    curl git unzip libicu-dev \
-    && docker-php-ext-install pdo pdo_mysql intl \
-    && rm -rf /var/lib/apt/lists/*
+    git \
+    unzip \
+    libpq-dev \
+    libonig-dev \
+    libzip-dev \
+    zip
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Extensiones PHP necesarias
+RUN docker-php-ext-install pdo pdo_mysql zip
 
-WORKDIR /app
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www
 
 COPY . .
 
-RUN mkdir -p var/cache var/log \
-    && composer install --no-interaction --optimize-autoloader \
-    && chmod -R 777 var
+RUN composer install
 
-EXPOSE 8000
-
-CMD ["php", "-S", "0.0.0.0:8000", "-t", "public", "public/index.php"]
+CMD ["php-fpm"]
