@@ -1,35 +1,50 @@
 security:
     password_hashers:
-        App\Entity\User:
-            algorithm: auto
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
     providers:
         app_user_provider:
             entity:
                 class: App\Entity\User
                 property: email
+        # used to reload user from session & other features (e.g. switch_user)
+        # used to reload user from session & other features (e.g. switch_user)
+        # used to reload user from session & other features (e.g. switch_user)
 
     firewalls:
-        login:
-            pattern: ^/api/login
-            stateless: true
-            json_login:
-                check_path: /api/login
-                username_path: email
-                password_path: password
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+        dev:
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
 
+        # 🔌 API (React)
         api:
             pattern: ^/api
             stateless: true
-            jwt: ~
+            custom_authenticator: App\Security\LoginAuthenticator
 
-        dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
-            security: false
+        # 🌐 WEB (Twig)
+        main:
+            lazy: true
+            provider: app_user_provider
+
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                username_parameter: email
+                password_parameter: password
+
+            logout:
+                path: app_logout
 
     access_control:
+      # API
       - { path: ^/api/login, roles: PUBLIC_ACCESS }
       - { path: ^/api/register, roles: PUBLIC_ACCESS }
-      - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+      - { path: ^/api, roles: ROLE_USER }
+
+      # WEB
+      - { path: ^/login, roles: PUBLIC_ACCESS }
+      - { path: ^/register, roles: PUBLIC_ACCESS }
+      - { path: ^/$, roles: PUBLIC_ACCESS }
+      - { path: ^/, roles: ROLE_USER }
+      - { path: ^/products, roles: ROLE_WORKER }

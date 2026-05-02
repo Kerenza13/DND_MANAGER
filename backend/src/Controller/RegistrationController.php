@@ -3,44 +3,56 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Form\RegistrationFormType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 class RegistrationController extends AbstractController
 {
-    #[Route('/api/register', name: 'api_register', methods: ['POST'])]
+    #[Route('/register', name: 'app_register')]
     public function register(
         Request $request,
-        UserPasswordHasherInterface $hasher,
-        EntityManagerInterface $em
-    ): JsonResponse {
-
-        $data = json_decode($request->getContent(), true);
-
-        if (!isset($data['email'], $data['password'])) {
-            return $this->json([
-                'error' => 'Missing email or password'
-            ], 400);
-        }
+        UserPasswordHasherInterface $userPasswordHasher,
+        Security $security,
+        EntityManagerInterface $entityManager
+    ): Response {
 
         $user = new User();
-        $user->setEmail($data['email']);
-        $user->setPassword(
-            $hasher->hashPassword($user, $data['password'])
-        );
 
-        // por defecto cliente
-        $user->setRoles(['ROLE_CLIENT']);
+        $form = $this->createForm(RegistrationFormType::class, $user);
+        $form->handleRequest($request);
 
-        $em->persist($user);
-        $em->flush();
+        if ($form->isSubmitted() && $form->isValid()) {
 
-        return $this->json([
-            'message' => 'User created successfully'
-        ], 201);
+            // password
+            $plainPassword = $form->get('plainPassword')->getData();
+
+            $user->setPassword(
+                $userPasswordHasher->hashPassword($user, $plainPassword)
+            );
+
+            // ✅ ROLE LOGIC
+            $isWorker = $form->get('isWorker')->getData();
+
+            if ($isWorker) {
+                $user->setRoles(['ROLE_WORKER', 'ROLE_USER']);
+            } else {
+                $user->setRoles(['ROLE_USER']);
+            }
+
+            $entityManager->persist($user);
+            $entityManager->flush();
+
+            return $security->login($user, 'form_login', 'main');
+        }
+
+        return $this->render('registration/register.html.twig', [
+            'registrationForm' => $form,
+        ]);
     }
 }

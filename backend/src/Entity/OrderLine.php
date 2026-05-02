@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Entity;
-
+// Product
 use App\Repository\OrderLineRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -20,16 +20,18 @@ class OrderLine
     private ?float $price = null;
 
     #[ORM\ManyToOne(inversedBy: 'orderLines')]
-    private ?Order $OrderRelation = null;
+    private ?Order $orderRef = null;
+
+    #[ORM\ManyToOne(inversedBy: 'orderLinesRef')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?order $orderRelation = null;
 
     #[ORM\ManyToOne(inversedBy: 'orderLines')]
+    #[ORM\JoinColumn(nullable: false)]
     private ?Product $Product = null;
 
-    #[ORM\ManyToOne(inversedBy: 'OrderLine')]
-    private ?Order $orderrelation = null;
-
-    #[ORM\ManyToOne(inversedBy: 'OrderLine')]
-    private ?Product $product = null;
+    #[ORM\ManyToOne(inversedBy: 'orderLinesRelation')]
+    private ?Product $ProductRef = null;
 
     public function getId(): ?int
     {
@@ -60,14 +62,26 @@ class OrderLine
         return $this;
     }
 
-    public function getOrderRelation(): ?Order
+    public function getOrderRef(): ?Order
     {
-        return $this->OrderRelation;
+        return $this->orderRef;
     }
 
-    public function setOrderRelation(?Order $OrderRelation): static
+    public function setOrderRef(?Order $orderRef): static
     {
-        $this->OrderRelation = $OrderRelation;
+        $this->orderRef = $orderRef;
+
+        return $this;
+    }
+
+    public function getOrderRelation(): ?order
+    {
+        return $this->orderRelation;
+    }
+
+    public function setOrderRelation(?order $orderRelation): static
+    {
+        $this->orderRelation = $orderRelation;
 
         return $this;
     }
@@ -80,6 +94,18 @@ class OrderLine
     public function setProduct(?Product $Product): static
     {
         $this->Product = $Product;
+
+        return $this;
+    }
+
+    public function getProductRef(): ?Product
+    {
+        return $this->ProductRef;
+    }
+
+    public function setProductRef(?Product $ProductRef): static
+    {
+        $this->ProductRef = $ProductRef;
 
         return $this;
     }

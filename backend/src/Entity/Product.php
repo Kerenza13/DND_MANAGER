@@ -31,19 +31,19 @@ class Product
     /**
      * @var Collection<int, OrderLine>
      */
-    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'Product')]
+    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'product')]
     private Collection $orderLines;
 
     /**
-     * @var Collection<int, OrderLine>
+     * @var Collection<int, orderLine>
      */
-    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'product')]
-    private Collection $OrderLine;
+    #[ORM\OneToMany(targetEntity: orderLine::class, mappedBy: 'productRef')]
+    private Collection $orderLinesRelation;
 
     public function __construct()
     {
         $this->orderLines = new ArrayCollection();
-        $this->OrderLine = new ArrayCollection();
+        $this->orderLinesRelation = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -130,10 +130,32 @@ class Product
     }
 
     /**
-     * @return Collection<int, OrderLine>
+     * @return Collection<int, orderLine>
      */
-    public function getOrderLine(): Collection
+    public function getOrderLinesRelation(): Collection
     {
-        return $this->OrderLine;
+        return $this->orderLinesRelation;
+    }
+
+    public function addOrderLinesRelation(orderLine $orderLinesRelation): static
+    {
+        if (!$this->orderLinesRelation->contains($orderLinesRelation)) {
+            $this->orderLinesRelation->add($orderLinesRelation);
+            $orderLinesRelation->setProductRef($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOrderLinesRelation(orderLine $orderLinesRelation): static
+    {
+        if ($this->orderLinesRelation->removeElement($orderLinesRelation)) {
+            // set the owning side to null (unless already changed)
+            if ($orderLinesRelation->getProductRef() === $this) {
+                $orderLinesRelation->setProductRef(null);
+            }
+        }
+
+        return $this;
     }
 }

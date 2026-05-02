@@ -38,8 +38,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, Order>
      */
-    #[ORM\OneToMany(targetEntity: Order::class, mappedBy: 'User')]
+    #[ORM\OneToMany(targetEntity: Order::class, mappedBy: 'user')]
     private Collection $orders;
+
+    /**
+     * @var Collection<int, Order>
+     */
+    #[ORM\OneToMany(targetEntity: Order::class, mappedBy: 'userRef')]
+    private Collection $orderRef;
 
     /**
      * @var Collection<int, Invoice>
@@ -47,24 +53,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Invoice::class, mappedBy: 'User')]
     private Collection $invoices;
 
-    /**
-     * @var Collection<int, Invoice>
-     */
-    #[ORM\OneToMany(targetEntity: Invoice::class, mappedBy: 'user')]
-    private Collection $Invoice;
-
-    /**
-     * @var Collection<int, Order>
-     */
-    #[ORM\OneToMany(targetEntity: Order::class, mappedBy: 'user')]
-    private Collection $OrderRelation;
-
     public function __construct()
     {
         $this->orders = new ArrayCollection();
+        $this->orderRef = new ArrayCollection();
         $this->invoices = new ArrayCollection();
-        $this->Invoice = new ArrayCollection();
-        $this->OrderRelation = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -179,6 +172,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
+     * @return Collection<int, Order>
+     */
+    public function getOrderRef(): Collection
+    {
+        return $this->orderRef;
+    }
+
+    public function addOrderRef(Order $orderRef): static
+    {
+        if (!$this->orderRef->contains($orderRef)) {
+            $this->orderRef->add($orderRef);
+            $orderRef->setUserRef($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOrderRef(Order $orderRef): static
+    {
+        if ($this->orderRef->removeElement($orderRef)) {
+            // set the owning side to null (unless already changed)
+            if ($orderRef->getUserRef() === $this) {
+                $orderRef->setUserRef(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
      * @return Collection<int, Invoice>
      */
     public function getInvoices(): Collection
@@ -202,44 +225,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($invoice->getUser() === $this) {
                 $invoice->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Invoice>
-     */
-    public function getInvoice(): Collection
-    {
-        return $this->Invoice;
-    }
-
-    /**
-     * @return Collection<int, Order>
-     */
-    public function getOrderRelation(): Collection
-    {
-        return $this->OrderRelation;
-    }
-
-    public function addOrderRelation(Order $orderRelation): static
-    {
-        if (!$this->OrderRelation->contains($orderRelation)) {
-            $this->OrderRelation->add($orderRelation);
-            $orderRelation->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeOrderRelation(Order $orderRelation): static
-    {
-        if ($this->OrderRelation->removeElement($orderRelation)) {
-            // set the owning side to null (unless already changed)
-            if ($orderRelation->getUser() === $this) {
-                $orderRelation->setUser(null);
             }
         }
 

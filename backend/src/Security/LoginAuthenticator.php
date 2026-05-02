@@ -16,23 +16,30 @@ class LoginAuthenticator extends AbstractAuthenticator
 {
     public function supports(Request $request): ?bool
     {
-        return $request->getPathInfo() === '/login' && $request->isMethod('POST');
+        return $request->getPathInfo() === '/api/login'
+            && $request->isMethod('POST')
+            && str_contains($request->headers->get('Content-Type') ?? '', 'application/json');
     }
 
     public function authenticate(Request $request): Passport
     {
         $data = json_decode($request->getContent(), true);
 
+        if (!$data || !isset($data['email'], $data['password'])) {
+            throw new AuthenticationException('Invalid JSON');
+        }
+
         return new Passport(
-            new UserBadge($data['email'] ?? ''),
-            new PasswordCredentials($data['password'] ?? '')
+            new UserBadge($data['email']),
+            new PasswordCredentials($data['password'])
         );
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
         return new JsonResponse([
-            'message' => 'Login successful'
+            'message' => 'Login successful',
+            'user' => $token->getUser()->getUserIdentifier()
         ]);
     }
 

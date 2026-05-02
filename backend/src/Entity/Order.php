@@ -19,6 +19,9 @@ class Order
     #[ORM\Column(length: 255)]
     private ?string $status = null;
 
+    #[ORM\Column]
+    private ?float $total = 0;
+
     #[ORM\Column(length: 255)]
     private ?string $type = null;
 
@@ -26,33 +29,28 @@ class Order
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\ManyToOne(inversedBy: 'orders')]
-    private ?User $User = null;
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $user = null;
 
-    #[ORM\ManyToOne(inversedBy: 'orders')]
-    private ?RestaurantTable $RestaurantTable = null;
+    #[ORM\ManyToOne(inversedBy: 'orderRef')]
+    private ?User $userRef = null;
 
     /**
      * @var Collection<int, OrderLine>
      */
-    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'OrderRelation')]
+    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'orderRef')]
     private Collection $orderLines;
 
     /**
      * @var Collection<int, OrderLine>
      */
-    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'orderrelation')]
-    private Collection $OrderLine;
-
-    #[ORM\ManyToOne(inversedBy: 'OrderRelation')]
-    private ?RestaurantTable $restaurantTable = null;
-
-    #[ORM\ManyToOne(inversedBy: 'OrderRelation')]
-    private ?User $user = null;
+    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'orderRelation')]
+    private Collection $orderLinesRef;
 
     public function __construct()
     {
         $this->orderLines = new ArrayCollection();
-        $this->OrderLine = new ArrayCollection();
+        $this->orderLinesRef = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -98,24 +96,24 @@ class Order
 
     public function getUser(): ?User
     {
-        return $this->User;
+        return $this->user;
     }
 
-    public function setUser(?User $User): static
+    public function setUser(?User $user): static
     {
-        $this->User = $User;
+        $this->user = $user;
 
         return $this;
     }
 
-    public function getRestaurantTable(): ?RestaurantTable
+    public function getUserRef(): ?User
     {
-        return $this->RestaurantTable;
+        return $this->userRef;
     }
 
-    public function setRestaurantTable(?RestaurantTable $RestaurantTable): static
+    public function setUserRef(?User $userRef): static
     {
-        $this->RestaurantTable = $RestaurantTable;
+        $this->userRef = $userRef;
 
         return $this;
     }
@@ -127,12 +125,21 @@ class Order
     {
         return $this->orderLines;
     }
+    public function getTotal(): ?float
+    {
+        return $this->total;
+    }
 
+    public function setTotal(float $total): static
+    {
+        $this->total = $total;
+        return $this;
+    }
     public function addOrderLine(OrderLine $orderLine): static
     {
         if (!$this->orderLines->contains($orderLine)) {
             $this->orderLines->add($orderLine);
-            $orderLine->setOrderRelation($this);
+            $orderLine->setOrderRef($this);
         }
 
         return $this;
@@ -142,8 +149,8 @@ class Order
     {
         if ($this->orderLines->removeElement($orderLine)) {
             // set the owning side to null (unless already changed)
-            if ($orderLine->getOrderRelation() === $this) {
-                $orderLine->setOrderRelation(null);
+            if ($orderLine->getOrderRef() === $this) {
+                $orderLine->setOrderRef(null);
             }
         }
 
@@ -153,8 +160,30 @@ class Order
     /**
      * @return Collection<int, OrderLine>
      */
-    public function getOrderLine(): Collection
+    public function getOrderLinesRef(): Collection
     {
-        return $this->OrderLine;
+        return $this->orderLinesRef;
+    }
+
+    public function addOrderLinesRef(OrderLine $orderLinesRef): static
+    {
+        if (!$this->orderLinesRef->contains($orderLinesRef)) {
+            $this->orderLinesRef->add($orderLinesRef);
+            $orderLinesRef->setOrderRelation($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOrderLinesRef(OrderLine $orderLinesRef): static
+    {
+        if ($this->orderLinesRef->removeElement($orderLinesRef)) {
+            // set the owning side to null (unless already changed)
+            if ($orderLinesRef->getOrderRelation() === $this) {
+                $orderLinesRef->setOrderRelation(null);
+            }
+        }
+
+        return $this;
     }
 }
