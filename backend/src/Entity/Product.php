@@ -35,10 +35,29 @@ class Product
     private Collection $orderLines;
 
     /**
-     * @var Collection<int, orderLine>
+     * @var Collection<int, OrderLine>
      */
-    #[ORM\OneToMany(targetEntity: orderLine::class, mappedBy: 'productRef')]
+    #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'productRef')]
     private Collection $orderLinesRelation;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
+
+    public function getDeletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTimeImmutable $deletedAt): self
+    {
+        $this->deletedAt = $deletedAt;
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt !== null;
+    }
 
     public function __construct()
     {
@@ -120,7 +139,6 @@ class Product
     public function removeOrderLine(OrderLine $orderLine): static
     {
         if ($this->orderLines->removeElement($orderLine)) {
-            // set the owning side to null (unless already changed)
             if ($orderLine->getProduct() === $this) {
                 $orderLine->setProduct(null);
             }
@@ -130,14 +148,14 @@ class Product
     }
 
     /**
-     * @return Collection<int, orderLine>
+     * @return Collection<int, OrderLine>
      */
     public function getOrderLinesRelation(): Collection
     {
         return $this->orderLinesRelation;
     }
 
-    public function addOrderLinesRelation(orderLine $orderLinesRelation): static
+    public function addOrderLinesRelation(OrderLine $orderLinesRelation): static
     {
         if (!$this->orderLinesRelation->contains($orderLinesRelation)) {
             $this->orderLinesRelation->add($orderLinesRelation);
@@ -147,10 +165,9 @@ class Product
         return $this;
     }
 
-    public function removeOrderLinesRelation(orderLine $orderLinesRelation): static
+    public function removeOrderLinesRelation(OrderLine $orderLinesRelation): static
     {
         if ($this->orderLinesRelation->removeElement($orderLinesRelation)) {
-            // set the owning side to null (unless already changed)
             if ($orderLinesRelation->getProductRef() === $this) {
                 $orderLinesRelation->setProductRef(null);
             }

@@ -1,9 +1,14 @@
 <h1>Dashboard</h1>
 
-{# USERS: orders + invoices #}
-{% if is_user %}
-    <li><a href="{{ path('app_logout') }}">Logout</a></li>
-
+{# USER AREA #}
+{% if is_granted('ROLE_USER') %}
+    <ul>
+        <li><a href="{{ path('app_logout') }}">Logout</a></li>
+    </ul>
+{% if is_granted('ROLE_WORKER') %}
+    <h2>Product</h2>
+    <a href="{{ path('app_product_index') }}">Manage Products</a>
+{% endif %}
     <h2>My Orders</h2>
     <a href="{{ path('app_order_index') }}">Go to Orders</a>
 
@@ -11,12 +16,5 @@
     <a href="{{ path('app_invoice_index') }}">Go to Invoices</a>
 {% endif %}
 
-{# ADMIN / WORKER: everything + products #}
-{% if is_admin %}
-    <hr>
+{# ADMIN / WORKER AREA #}
 
-    <h2>Admin Panel</h2>
-    <a href="{{ path('app_order_index') }}">Manage Orders</a><br>
-    <a href="{{ path('app_invoice_index') }}">Manage Invoices</a><br>
-    <a href="{{ path('app_product_index') }}">Manage Products</a>
-{% endif %}

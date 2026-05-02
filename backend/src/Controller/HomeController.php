@@ -20,11 +20,7 @@ class HomeController extends AbstractController
         $roles = $user->getRoles();
 
         return $this->render('home/dashboard.html.twig', [
-            'is_admin' => in_array('ROLE_WORKER', $roles),
-            'is_user'  => in_array('ROLE_USER', $roles),
-
-            // data for dashboard
-            'show_products' => in_array('ROLE_WORKER', $roles),
+            'show_products' => in_array('ROLE_WORKER', $user->getRoles()),
         ]);
     }
 }

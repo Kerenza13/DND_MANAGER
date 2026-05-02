@@ -48,21 +48,40 @@ final class InvoiceController extends AbstractController
         ]);
     }
     #[Route('/{id}/pdf', name: 'app_invoice_pdf', methods: ['GET'])]
-    public function pdf(Invoice $invoice): Response
+    public function pdf(Invoice $invoice, EntityManagerInterface $em): Response
     {
+        // Force full hydration of relations (orderRelation, orderLines, product)
+        $invoice = $em->getRepository(Invoice::class)
+            ->createQueryBuilder('i')
+            ->leftJoin('i.orderRelation', 'o')           // Join orderRelation
+            ->addSelect('o')
+            ->leftJoin('o.orderLines', 'l')              // Join orderLines
+            ->addSelect('l')
+            ->leftJoin('l.product', 'p')                 // Join product
+            ->addSelect('p')
+            ->where('i.id = :id')
+            ->setParameter('id', $invoice->getId())
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        // Options for Dompdf
         $options = new Options();
         $options->set('defaultFont', 'Arial');
 
+        // Initialize Dompdf
         $dompdf = new Dompdf($options);
 
+        // Render HTML for PDF
         $html = $this->renderView('invoice/pdf.html.twig', [
             'invoice' => $invoice,
         ]);
 
+        // Load and render the HTML into a PDF
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
+        // Return the generated PDF as a response
         return new Response(
             $dompdf->output(),
             200,

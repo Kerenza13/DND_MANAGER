@@ -1,26 +1,27 @@
-<h1>Invoice #{{ invoice.id }} - {{ invoice.user.email }}</h1>
+<h1>Invoice #{{ invoice.id }}</h1>
 
-<p>Customer: {{ invoice.user.email }}</p>
-<p>Date: {{ invoice.createdAt|date('Y-m-d H:i') }}</p>
+<p><strong>Customer:</strong> {{ invoice.user.email }}</p>
+
+<p><strong>Order type:</strong> {{ invoice.orderRelation.type }}</p>
+
+<p><strong>Status:</strong> {{ invoice.orderRelation.status }}</p>
+
+<p><strong>Date:</strong> {{ invoice.createdAt|date('Y-m-d H:i') }}</p>
 
 <hr>
 
 <h3>Products</h3>
 
 <ul>
-    {% if invoice.orderRelation and invoice.orderRelation.orderLines is defined %}
-        {% for line in invoice.orderRelation.orderLines %}
-            <li>
-                {{ line.product.name }}
-                — {{ line.quantity }} × {{ line.price }} €
-                = {{ line.quantity * line.price }} €
-            </li>
-        {% else %}
-            <li>No products found</li>
-        {% endfor %}
+    {% for line in invoice.orderRelation.orderLinesRef %}
+        <li>
+            {{ line.product.name }}
+            — {{ line.quantity }} × {{ line.price }} €
+            = {{ line.quantity * line.price }} €
+        </li>
     {% else %}
-        <li>No order linked</li>
-    {% endif %}
+        <li>No products found</li>
+    {% endfor %}
 </ul>
 
 <hr>

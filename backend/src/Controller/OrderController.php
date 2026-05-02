@@ -21,9 +21,17 @@ final class OrderController extends AbstractController
     {
         $user = $this->getUser();
 
-        $orders = in_array('ROLE_WORKER', $user->getRoles())
-            ? $orderRepository->findAll()
-            : $orderRepository->findBy(['user' => $user]);
+        $qb = $orderRepository->createQueryBuilder('o');
+
+        if (in_array('ROLE_WORKER', $user->getRoles())) {
+            $qb->where('o.deletedAt IS NULL');
+        } else {
+            $qb->where('o.deletedAt IS NULL')
+                ->andWhere('o.user = :user')
+                ->setParameter('user', $user);
+        }
+
+        $orders = $qb->getQuery()->getResult();;
 
         return $this->render('order/index.html.twig', [
             'orders' => $orders,
@@ -93,7 +101,10 @@ final class OrderController extends AbstractController
         }
 
         return $this->render('order/new.html.twig', [
-            'products' => $productRepository->findAll(),
+            'products' => $productRepository->createQueryBuilder('p')
+                ->where('p.deletedAt IS NULL')
+                ->getQuery()
+                ->getResult(),
         ]);
     }
 
@@ -164,16 +175,16 @@ final class OrderController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_order_delete', methods: ['POST'])]
-    public function delete(Request $request, Order $order, EntityManagerInterface $entityManager): Response
+    public function delete(Order $order, EntityManagerInterface $em): Response
     {
         if (!$this->isGranted('ROLE_WORKER')) {
             throw $this->createAccessDeniedException();
         }
 
-        if ($this->isCsrfTokenValid('delete' . $order->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($order);
-            $entityManager->flush();
-        }
+        // SOFT DELETE instead of hard delete
+        $order->setDeletedAt(new \DateTimeImmutable());
+
+        $em->flush();
 
         return $this->redirectToRoute('app_order_index');
     }

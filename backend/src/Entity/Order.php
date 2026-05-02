@@ -46,7 +46,24 @@ class Order
      */
     #[ORM\OneToMany(targetEntity: OrderLine::class, mappedBy: 'orderRelation')]
     private Collection $orderLinesRef;
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $deletedAt = null;
 
+    public function getDeletedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTimeImmutable $deletedAt): self
+    {
+        $this->deletedAt = $deletedAt;
+        return $this;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deletedAt !== null;
+    }
     public function __construct()
     {
         $this->orderLines = new ArrayCollection();

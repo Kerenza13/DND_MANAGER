@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Entity;
-// Product
+
 use App\Repository\OrderLineRepository;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -23,15 +23,14 @@ class OrderLine
     private ?Order $orderRef = null;
 
     #[ORM\ManyToOne(inversedBy: 'orderLinesRef')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?order $orderRelation = null;
+    private ?Order $orderRelation = null;
 
     #[ORM\ManyToOne(inversedBy: 'orderLines')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Product $Product = null;
+    private ?Product $product = null; // Renamed to lowercase 'product' to match convention
 
     #[ORM\ManyToOne(inversedBy: 'orderLinesRelation')]
-    private ?Product $ProductRef = null;
+    private ?Product $productRef = null;
 
     public function getId(): ?int
     {
@@ -74,12 +73,12 @@ class OrderLine
         return $this;
     }
 
-    public function getOrderRelation(): ?order
+    public function getOrderRelation(): ?Order
     {
         return $this->orderRelation;
     }
 
-    public function setOrderRelation(?order $orderRelation): static
+    public function setOrderRelation(?Order $orderRelation): static
     {
         $this->orderRelation = $orderRelation;
 
@@ -88,24 +87,24 @@ class OrderLine
 
     public function getProduct(): ?Product
     {
-        return $this->Product;
+        return $this->product;
     }
 
-    public function setProduct(?Product $Product): static
+    public function setProduct(?Product $product): static
     {
-        $this->Product = $Product;
+        $this->product = $product;
 
         return $this;
     }
 
     public function getProductRef(): ?Product
     {
-        return $this->ProductRef;
+        return $this->productRef;
     }
 
-    public function setProductRef(?Product $ProductRef): static
+    public function setProductRef(?Product $productRef): static
     {
-        $this->ProductRef = $ProductRef;
+        $this->productRef = $productRef;
 
         return $this;
     }

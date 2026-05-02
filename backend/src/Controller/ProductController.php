@@ -10,7 +10,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-
 #[Route('/product')]
 final class ProductController extends AbstractController
 {
@@ -19,8 +18,13 @@ final class ProductController extends AbstractController
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
 
+        $products = $productRepository->createQueryBuilder('p')
+            ->where('p.deletedAt IS NULL')
+            ->getQuery()
+            ->getResult();
+
         return $this->render('product/index.html.twig', [
-            'products' => $productRepository->findAll(),
+            'products' => $products,
         ]);
     }
 
@@ -37,7 +41,7 @@ final class ProductController extends AbstractController
             $entityManager->persist($product);
             $entityManager->flush();
 
-            return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_product_index');
         }
 
         return $this->render('product/new.html.twig', [
@@ -47,9 +51,16 @@ final class ProductController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_product_show', methods: ['GET'])]
-    public function show(Product $product): Response
+    public function show(int $id, ProductRepository $productRepository): Response
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
+
+        $product = $productRepository->find($id);
+
+        // 🔴 IMPORTANT: prevent soft-deleted products from loading
+        if (!$product || $product->getDeletedAt() !== null) {
+            throw $this->createNotFoundException('Product not found');
+        }
 
         return $this->render('product/show.html.twig', [
             'product' => $product,
@@ -61,13 +72,18 @@ final class ProductController extends AbstractController
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
 
+        // 🔴 block editing deleted products
+        if ($product->getDeletedAt() !== null) {
+            throw $this->createNotFoundException('Product not found');
+        }
+
         $form = $this->createForm(ProductType::class, $product);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
 
-            return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_product_index');
         }
 
         return $this->render('product/edit.html.twig', [
@@ -81,11 +97,13 @@ final class ProductController extends AbstractController
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
 
-        if ($this->isCsrfTokenValid('delete'.$product->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($product);
+        if ($this->isCsrfTokenValid('delete' . $product->getId(), $request->getPayload()->getString('_token'))) {
+
+            // ✅ SOFT DELETE
+            $product->setDeletedAt(new \DateTimeImmutable());
             $entityManager->flush();
         }
 
-        return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_product_index');
     }
 }
