@@ -1,242 +1,104 @@
-# 📘 Restaurant Manager API Documentation
+# 📘 Restaurant Manager API Documentation (v2.0)
 
 ## 🧭 Overview
-This backend is a Symfony-based restaurant management system with:
-* User authentication (login/register)
-* Role-based access control
-* Order management
-* Invoice generation (including PDF export)
-* Product catalog (with soft delete)
-* Automatic invoice calculation from orders
+A headless Symfony-based restaurant management system designed for a React frontend.
+* **Architecture:** RESTful API (Stateless)
+* **Format:** All requests/responses use `application/json`
+* **Storage:** Dockerized database with Soft Delete logic
+* **Exports:** PDF generation for legal billing
 
 ---
 
-## 🔐 Authentication
+## 🔐 Authentication & Identity
 
 ### Login
-`GET /api/login`
-
-**Response:**
-* Login page (Twig form)
-* Returns authentication error if login fails
+`POST /api/login`
+* **Body:** `{"email": "...", "password": "..."}`
+* **Response:** Returns User ID, Email, and Roles on success.
 
 ### Logout
-`GET /api/logout`
-
-* Handled automatically by Symfony firewall.
+`POST /api/logout`
+* **Action:** Intercepted by the firewall. Frontends should clear local storage/session cookies upon calling this.
 
 ### Register
 `POST /api/register`
+* **Body:** `{"email": "...", "password": "...", "isWorker": true/false}`
+* **Logic:** Automatically hashes passwords and assigns `ROLE_USER`. If `isWorker` is true, assigns `ROLE_WORKER`.
 
-**Behavior:**
-* Creates a new user
-* Password is hashed
-* Assigns roles based on form input
+---
 
-**Roles:**
-| Condition | Roles assigned |
+## 👤 Permissions & RBAC
+The system enforces a strict hierarchy to ensure data privacy.
+
+| Role | Permissions |
 | :--- | :--- |
-| Worker selected | `ROLE_WORKER` + `ROLE_USER` |
-| Default user | `ROLE_USER` |
+| `ROLE_USER` | Create orders, view personal order history, download personal invoices. |
+| `ROLE_WORKER` | Manage product catalog, view all orders/invoices, mark orders as complete. |
 
 ---
 
-## 👤 Roles System
-The system uses Symfony roles:
-
-| Role | Meaning |
-| :--- | :--- |
-| `ROLE_USER` | Normal customer |
-| `ROLE_WORKER` | Admin /api/ staff |
+## 🏠 Dashboard Data
+`GET /api/dashboard`
+Provides a context-aware state for the React frontend to build the UI.
+* **Payload:** Contains `isAuthenticated`, `userIdentifier`, and a `permissions` object (e.g., `can_view_products`).
 
 ---
 
-## 🏠 Home /api/ Dashboard
-`GET /api/`
+## 📦 Product Management (Worker Only)
+All product endpoints require `ROLE_WORKER`.
 
-**Redirects:**
-* If not logged in → `/login`
-* If logged in → dashboard
-
-**Data passed to frontend:**
-* `show_products` => `ROLE_WORKER` only
-
----
-
-## 📦 Products
-
-### List Products
-`GET /api/product`
-
-**Access:**
-* Only `ROLE_WORKER`
-
-**Behavior:**
-* Shows only active products
-* Soft-deleted products are hidden
-
-### Create Product
-`POST /api/product/new`
-
-**Access:**
-* `ROLE_WORKER`
-
-### Edit Product
-`POST /api/product/{id}/edit`
-
-**Rules:**
-* Cannot edit deleted products
-
-### Soft Delete Product
-`POST /api/product/{id}`
-
-**Behavior:**
-* Product is NOT removed from database
-* Instead: `deletedAt = now()`
-
-**Product Rules:**
-* Products are never hard deleted
-* Hidden using: `deletedAt IS NULL`
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/product` | List all non-deleted products. |
+| `POST` | `/api/product` | Create a product (`nombre`, `precio`, `avalible`). |
+| `GET` | `/api/product/{id}` | Get specific product details. |
+| `PUT/PATCH`| `/api/product/{id}` | Update product details. |
+| `DELETE` | `/api/product/{id}` | **Soft Delete:** Sets `deletedAt` timestamp. |
 
 ---
 
-## 🍔 Orders
+## 🍔 Order Lifecycle
 
-### List Orders
+### 1. Placement
+`POST /api/order`
+* **Access:** `ROLE_USER` or `ROLE_WORKER`.
+* **Process:** Snapshots the current price of products into `OrderLines`. This ensures that if a product price changes later, the order history remains accurate.
+
+### 2. Tracking
 `GET /api/order`
+* **Worker:** Returns every active order in the system.
+* **User:** Filters results to show only orders belonging to the authenticated user.
 
-**Behavior:**
-| Role | Data visible |
-| :--- | :--- |
-| `ROLE_WORKER` | All active orders |
-| `ROLE_USER` | Own active orders |
-
-### Create Order
-`POST /api/order/new`
-
-**Flow:**
-* User selects products
-* Order is created
-* OrderLines are created
-* Product price is copied at order time
-
-**Important:**
-* Only active products are selectable
-* Deleted products are hidden
-
-### Complete Order
+### 3. Fulfillment
 `POST /api/order/{id}/complete`
-
-**Behavior:**
-* Marks order as completed
-* Generates invoice if not existing
-* Calculates total from order lines
-
-### Soft Delete Order
-`POST /api/order/{id}`
-
-**Behavior:**
-* Sets: `deletedAt = now()`
+* **Access:** `ROLE_WORKER` only.
+* **Action:** Changes status to `completed` and **automatically triggers** the creation of a permanent `Invoice` record.
 
 ---
 
-## 🧾 Invoices
+## 🧾 Billing & Invoices
 
-### List Invoices
+### Invoice List
 `GET /api/invoice`
+Retrieves billing history. Access is filtered by owner unless the requester is a Worker.
 
-**Rules:**
-| Role | Visibility |
-| :--- | :--- |
-| `ROLE_WORKER` | All invoices |
-| `ROLE_USER` | Own invoices |
-
-### View Invoice
-`GET /api/invoice/{id}`
-
-**Security:**
-* Users can only view their own invoices
-* Workers can view all
-
-### Generate PDF Invoice
+### PDF Export
 `GET /api/invoice/{id}/pdf`
-
-**Features:**
-* Fully hydrated data (order + products)
-* Uses Dompdf
-* A4 portrait PDF
-
-**Includes:**
-* Customer
-* Order type
-* Status
-* Date
-* Products list
-* Total
+* **Output:** `application/pdf` binary stream.
+* **Visuals:** Uses Dompdf with A4 portrait orientation.
+* **Security:** Prevents users from downloading invoices that do not belong to them.
 
 ---
 
-## 🧠 Data Structure
+## 🏗️ Technical Business Rules
 
-### Order
-* `id`
-* `user`
-* `status` (serving /api/ completed)
-* `type` (dine_in /api/ take_away)
-* `createdAt`
-* `deletedAt` (soft delete)
-
-### OrderLine
-* `product`
-* `quantity`
-* `price` (snapshot at order time)
-* `orderRelation`
-
-### Product
-* `name`
-* `description`
-* `price`
-* `isAvailable`
-* `deletedAt` (soft delete)
-
-### Invoice
-* `user`
-* `orderRelation`
-* `total`
-* `createdAt`
+1.  **Immutable Financials:** Once an `OrderLine` is created, it stores the price as a static value. Even if the `Product` is edited or deleted, the financial record remains unchanged.
+2.  **Soft Delete Pattern:** We use a "Trash" logic. Data is never `REMOVED` from the DB; it is filtered out in the `Repository` level using `where('p.deletedAt IS NULL')`.
+3.  **Stateless Design:** The API is built to be stateless, making it ideal for mobile apps or React frontends.
 
 ---
 
-## ⚠️ Important Business Rules
-
-1. **Soft Delete System**
-   * Orders and Products are never physically deleted
-   * They are hidden using `deletedAt`
-2. **Invoice Immutability**
-   * Invoice always reflects original order state
-   * Product changes do NOT affect invoices
-3. **Price Snapshot**
-   * OrderLine stores product price at time of order
-4. **Security**
-   * `ROLE_USER` → sees own data only
-   * `ROLE_WORKER` → sees all data + admin features
-
----
-
-## 🚀 Frontend Integration Notes
-Frontend developers should:
-* Always use `/order` for order data
-* Always use `/invoice` for billing
-* Never rely on deleted products (they are hidden)
-* Expect null-safe product references in invoices (future-proofing)
-
----
-
-## 📌 Summary
-This backend provides:
-* ✔ Secure authentication
-* ✔ Role-based dashboard
-* ✔ Full order lifecycle
-* ✔ Invoice generation + PDF export
-* ✔ Soft delete system (safe data retention)
-* ✔ Stable financial history (no data loss)
+## 🚀 Integration Guide for React
+* **Base URL:** Ensure your `.env.local` points to the Symfony Docker container.
+* **Auth State:** Store the user roles returned by `/api/login` in a Global Context (like `useAuth`).
+* **PDF Handling:** When calling the PDF endpoint, use a blob response type or open the link in a new tab (`_blank`).

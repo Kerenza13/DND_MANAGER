@@ -11,8 +11,6 @@ WORKDIR /app
 COPY . .
 
 RUN mkdir -p /app/var/cache /app/var/log \
-    && composer install --no-dev --optimize-autoloader \
-    && php bin/console cache:clear --no-warmup || true \
     && chmod -R 777 /app/var
 
 EXPOSE 8000
