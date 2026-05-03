@@ -1,9 +1,8 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
 RUN apt-get update && apt-get install -y \
     curl git unzip libicu-dev \
-    && docker-php-ext-install pdo pdo_mysql intl \
-    && rm -rf /var/lib/apt/lists/*
+    && docker-php-ext-install pdo pdo_mysql intl
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -15,4 +14,4 @@ RUN mkdir -p /app/var/cache /app/var/log \
 
 EXPOSE 8000
 
-CMD ["php", "-S", "0.0.0.0:8000", "-t", "public", "public/index.php"]
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]

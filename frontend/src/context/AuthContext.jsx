@@ -8,94 +8,145 @@ export const AuthProvider = ({ children }) => {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // Persistence logic
+  // 🔥 DEBUG: confirm backend URL
+  console.log("🔌 API_URL =", API_URL);
+
+  // -------------------------
+  // LOAD SESSION USER
+  // -------------------------
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
+
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
-      } catch (e) {
+      } catch {
         localStorage.removeItem("user");
       }
     }
+
     setLoading(false);
   }, []);
 
-  /**
-   * 📝 REGISTER
-   * Payload: { email, password, isWorker }
-   * Note: Symfony RegistrationFormType uses a prefix, 
-   * so we send FormData for that specific endpoint.
-   */
-  const register = async (email, password, isWorker = false) => {
-    const formData = new FormData();
-    // Maps to your RegistrationFormType fields
-    formData.append("registration_form[email]", email);
-    formData.append("registration_form[plainPassword]", password);
-    formData.append("registration_form[agreeTerms]", "1"); 
-    
-    // role logic: if isWorker is true, backend sets ROLE_WORKER
-    if (isWorker) {
-      formData.append("registration_form[isWorker]", "1");
-    }
+  // -------------------------
+  // SAFE FETCH WRAPPER (DEBUGGING ADDED)
+  // -------------------------
+  const safeFetch = async (url, options = {}) => {
+    console.log("➡️ REQUEST:", url);
 
-    const res = await fetch(`${API_URL}/register`, {
+    try {
+      const res = await fetch(url, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+        credentials: "include",
+      });
+
+      console.log("⬅️ STATUS:", res.status);
+
+      return res;
+    } catch (err) {
+      console.error("❌ NETWORK ERROR (FAILED TO FETCH):", err);
+      throw new Error(
+        "Network error: backend unreachable (check API_URL / CORS / server)"
+      );
+    }
+  };
+
+  // -------------------------
+  // REGISTER
+  // -------------------------
+  const register = async (email, password, isWorker = false) => {
+    const res = await safeFetch(`${API_URL}/register`, {
       method: "POST",
-      headers: { "Accept": "application/json" } 
+      body: JSON.stringify({ email, password, isWorker }),
     });
 
-    const data = await res.json();
+    const text = await res.text();
+
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch {}
 
     if (!res.ok) {
-      const errorMsg = data.errors ? data.errors.join(" | ") : "Registration failed";
-      throw new Error(errorMsg);
+      console.log("❌ REGISTER ERROR RESPONSE:", text);
+      throw new Error(data.error || data.message || "Registration failed");
     }
 
     return data;
   };
 
-  /**
-   * 🔐 LOGIN
-   * Payload: { email, password }
-   */
+  // -------------------------
+  // LOGIN
+  // -------------------------
   const login = async (email, password) => {
-    const res = await fetch(`${API_URL}/api/login`, {
+    const res = await safeFetch(`${API_URL}/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }), // Sending email/password payload
+      body: JSON.stringify({ email, password }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw new Error(data.error || "Invalid credentials");
+      throw new Error(data.message || data.error || "Login failed");
     }
 
-    // Normalize user data (Symfony usually returns email or user object)
-    const userPayload = typeof data.user === 'string' 
-      ? { email: data.user, roles: ['ROLE_USER'] } 
-      : data.user;
+    const userPayload = data.user;
 
     localStorage.setItem("user", JSON.stringify(userPayload));
     setUser(userPayload);
-    
+
     return userPayload;
   };
 
-  const logout = () => {
+  // -------------------------
+  // LOGOUT
+  // -------------------------
+  const logout = async () => {
+    await safeFetch(`${API_URL}/logout`, {
+      method: "POST",
+    });
+
     localStorage.removeItem("user");
     setUser(null);
   };
 
-  // Helper for Role-based UI
-  const isAdmin = user?.roles?.includes("ROLE_WORKER") || user?.roles?.includes("ROLE_ADMIN");
+  // -------------------------
+  // ROLE CHECK
+  // -------------------------
+  const isAdmin =
+    user?.roles?.includes("ROLE_WORKER") ||
+    user?.roles?.includes("ROLE_ADMIN");
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, loading, isAdmin }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        login,
+        register,
+        logout,
+        loading,
+        isAdmin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+// -------------------------
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
+
+  return context;
+};
+
 export default AuthContext;

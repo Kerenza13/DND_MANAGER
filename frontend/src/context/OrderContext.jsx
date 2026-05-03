@@ -2,27 +2,22 @@
 import { createContext, useContext, useState, useMemo } from "react";
 import { useAuth } from "./AuthContext";
 
-const OrderContext = createContext();
-export const useOrder = () => useContext(OrderContext);
+export const OrderContext = createContext();
 
-const OrderProvider = ({ children }) => {
+export const OrderProvider = ({ children }) => {
   const { authFetch } = useAuth();
   const [items, setItems] = useState([]);
   const [type, setType] = useState("take_away");
-
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // Logic is clean, but ensure we don't add "undefined" prices
   const addProduct = (product) => {
     setItems((prev) => {
       const exists = prev.find((p) => p.id === product.id);
-
       if (exists) {
         return prev.map((p) =>
-          p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p,
+          p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p
         );
       }
-
       return [
         ...prev,
         {
@@ -49,7 +44,6 @@ const OrderProvider = ({ children }) => {
     setType("take_away");
   };
 
-  // Memoize total so it only recalculates when "items" change
   const total = useMemo(() => {
     return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [items]);
@@ -65,8 +59,8 @@ const OrderProvider = ({ children }) => {
       })),
     };
 
-    // Use a relative path or the API_URL from env if available
-    const res = await authFetch(`${API_URL}/order/new`, {
+    // FIXED: Endpoint changed from /order/new to /api/order per your docs
+    const res = await authFetch(`${API_URL}/api/order`, {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -91,7 +85,7 @@ const OrderProvider = ({ children }) => {
         removeProduct,
         updateQuantity,
         clearOrder,
-        total, // Export the value, not the function
+        total,
         createOrder,
       }}
     >
@@ -100,4 +94,8 @@ const OrderProvider = ({ children }) => {
   );
 };
 
-export default OrderProvider;
+export const useOrder = () => {
+  const context = useContext(OrderContext);
+  if (!context) throw new Error("useOrder must be used within an OrderProvider");
+  return context;
+};
