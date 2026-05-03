@@ -16,44 +16,51 @@ services:
       - restaurante_net
 
   backend:
-   build:
-     context: ./backend
-   container_name: restaurante_backend
-   ports:
-     - "8000:8000"
-   volumes:
-     - ./backend:/app
-   environment:
-     DATABASE_URL: "mysql://manager:manager_clave@database:3306/restaurante_manager?serverVersion=mariadb-10.4.32&charset=utf8mb4"
-     APP_ENV: dev
-     APP_SECRET: some_secret_key
-   depends_on:
-     database:
-      condition: service_healthy
-   command: php -S 0.0.0.0:8000 -t public
-   networks:
-     - restaurante_net
+    build:
+      context: ./backend
+    container_name: restaurante_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: "mysql://manager:manager_clave@database:3306/restaurante_manager?serverVersion=8.0&charset=utf8mb4"
+      APP_ENV: dev
+      APP_SECRET: some_secret_key
+    depends_on:
+      database:
+        condition: service_healthy
+    command: php -S 0.0.0.0:8000 -t public
+    networks:
+      - restaurante_net
 
   database:
-    image: mariadb:10.4
+    image: mysql:8.0
     container_name: restaurante_db
     restart: always
+
     environment:
       MYSQL_ROOT_PASSWORD: manager_clave
       MYSQL_DATABASE: restaurante_manager
       MYSQL_USER: manager
       MYSQL_PASSWORD: manager_clave
+
     ports:
       - "3306:3306"
+
+    command: --default-authentication-plugin=mysql_native_password
+
     volumes:
       - ./docker/mysql/bd.sql:/docker-entrypoint-initdb.d/init.sql
       - db_data:/var/lib/mysql
+
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--password=manager_clave", "--silent"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-pmanager_clave"]
       interval: 5s
       timeout: 5s
       retries: 12
       start_period: 40s
+
     networks:
       - restaurante_net
 
