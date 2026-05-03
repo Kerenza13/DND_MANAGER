@@ -16,37 +16,54 @@ class LoginAuthenticator extends AbstractAuthenticator
 {
     public function supports(Request $request): ?bool
     {
+        // Change: Be slightly more flexible with content-type for API clients
         return $request->getPathInfo() === '/api/login'
-            && $request->isMethod('POST')
-            && str_contains($request->headers->get('Content-Type') ?? '', 'application/json');
+            && $request->isMethod('POST');
     }
 
     public function authenticate(Request $request): Passport
     {
-        $data = json_decode($request->getContent(), true);
+        // Change: Using toArray() is cleaner in Symfony 6/7
+        try {
+            $data = $request->toArray();
+        } catch (\Exception $e) {
+            throw new AuthenticationException('Invalid JSON payload');
+        }
 
-        if (!$data || !isset($data['email'], $data['password'])) {
-            throw new AuthenticationException('Invalid JSON');
+        $email = $data['email'] ?? '';
+        $password = $data['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            throw new AuthenticationException('Email and password are required');
         }
 
         return new Passport(
-            new UserBadge($data['email']),
-            new PasswordCredentials($data['password'])
+            new UserBadge($email),
+            new PasswordCredentials($password)
         );
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
+        /** @var \App\Entity\User $user */
+        $user = $token->getUser();
+
+        // Change: Return more data so React can save it to Context/State immediately
         return new JsonResponse([
             'message' => 'Login successful',
-            'user' => $token->getUser()->getUserIdentifier()
-        ]);
+            'user' => [
+                'id' => $user->getId(),
+                'email' => $user->getUserIdentifier(),
+                'roles' => $user->getRoles()
+            ]
+        ], Response::HTTP_OK);
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
         return new JsonResponse([
-            'error' => 'Invalid credentials'
+            'error' => 'Authentication failed',
+            'message' => $exception->getMessageKey()
         ], Response::HTTP_UNAUTHORIZED);
     }
 }

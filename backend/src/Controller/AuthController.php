@@ -3,24 +3,32 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class AuthController extends AbstractController
 {
-    #[Route('/login', name: 'app_login')]
-    public function login(AuthenticationUtils $authenticationUtils): Response
+    // Note: Usually, the actual login logic is handled by Symfony's firewall.
+    // This endpoint just returns the user data AFTER the firewall authenticates.
+    #[Route('/api/login', name: 'api_login', methods: ['POST'])]
+    public function login(): JsonResponse
     {
-        return $this->render('security/login.html.twig', [
-            'last_username' => $authenticationUtils->getLastUsername(),
-            'error' => $authenticationUtils->getLastAuthenticationError(),
+        $user = $this->getUser();
+
+        if (!$user) {
+            return $this->json(['error' => 'Authentication failed'], 401);
+        }
+
+        return $this->json([
+            'username' => $user->getUserIdentifier(),
+            'roles' => $user->getRoles(),
         ]);
     }
 
-    #[Route('/logout', name: 'app_logout')]
+    #[Route('/api/logout', name: 'api_logout', methods: ['POST'])]
     public function logout(): void
     {
-        throw new \LogicException('Handled by firewall.');
+        // Handled by security.yaml logout listener
+        throw new \LogicException('This should be intercepted by the logout firewall.');
     }
 }

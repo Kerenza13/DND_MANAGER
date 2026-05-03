@@ -3,18 +3,18 @@
 namespace App\Controller;
 
 use App\Entity\Product;
-use App\Form\ProductType;
 use App\Repository\ProductRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
-#[Route('/product')]
+
+#[Route('/api/product')]
 final class ProductController extends AbstractController
 {
-    #[Route(name: 'app_product_index', methods: ['GET'])]
-    public function index(ProductRepository $productRepository): Response
+    #[Route('', name: 'app_product_index', methods: ['GET'])]
+    public function index(ProductRepository $productRepository): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
 
@@ -23,87 +23,66 @@ final class ProductController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        return $this->render('product/index.html.twig', [
-            'products' => $products,
-        ]);
+        return $this->json($products);
     }
 
-    #[Route('/new', name: 'app_product_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    #[Route('', name: 'app_product_new', methods: ['POST'])]
+    public function new(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
+        $data = $request->toArray();
 
         $product = new Product();
-        $form = $this->createForm(ProductType::class, $product);
-        $form->handleRequest($request);
+        $product->setName($data['nombre']);
+        $product->setPrice($data['precio']);
+        $product->setisAvalible($data['avalible'] ?? true);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($product);
-            $entityManager->flush();
+        $entityManager->persist($product);
+        $entityManager->flush();
 
-            return $this->redirectToRoute('app_product_index');
-        }
-
-        return $this->render('product/new.html.twig', [
-            'product' => $product,
-            'form' => $form,
-        ]);
+        return $this->json(['message' => 'Product created', 'id' => $product->getId()], 201);
     }
 
     #[Route('/{id}', name: 'app_product_show', methods: ['GET'])]
-    public function show(int $id, ProductRepository $productRepository): Response
+    public function show(int $id, ProductRepository $productRepository): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
-
         $product = $productRepository->find($id);
 
-        // 🔴 IMPORTANT: prevent soft-deleted products from loading
         if (!$product || $product->getDeletedAt() !== null) {
-            throw $this->createNotFoundException('Product not found');
+            return $this->json(['error' => 'Product not found'], 404);
         }
 
-        return $this->render('product/show.html.twig', [
-            'product' => $product,
-        ]);
+        return $this->json($product);
     }
 
-    #[Route('/{id}/edit', name: 'app_product_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Product $product, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', name: 'app_product_edit', methods: ['PUT', 'PATCH'])]
+    public function edit(Request $request, Product $product, EntityManagerInterface $entityManager): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
 
-        // 🔴 block editing deleted products
         if ($product->getDeletedAt() !== null) {
-            throw $this->createNotFoundException('Product not found');
+            return $this->json(['error' => 'Cannot edit deleted product'], 404);
         }
 
-        $form = $this->createForm(ProductType::class, $product);
-        $form->handleRequest($request);
+        $data = $request->toArray();
+        if (isset($data['nombre'])) $product->setName($data['nombre']);
+        if (isset($data['precio'])) $product->setPrice($data['precio']);
+        if (isset($data['avalible'])) $product->setisAvalible($data['avalible']);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+        $entityManager->flush();
 
-            return $this->redirectToRoute('app_product_index');
-        }
-
-        return $this->render('product/edit.html.twig', [
-            'product' => $product,
-            'form' => $form,
-        ]);
+        return $this->json(['message' => 'Product updated']);
     }
 
-    #[Route('/{id}', name: 'app_product_delete', methods: ['POST'])]
-    public function delete(Request $request, Product $product, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', name: 'app_product_delete', methods: ['DELETE'])]
+    public function delete(Product $product, EntityManagerInterface $entityManager): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_WORKER');
 
-        if ($this->isCsrfTokenValid('delete' . $product->getId(), $request->getPayload()->getString('_token'))) {
+        $product->setDeletedAt(new \DateTimeImmutable());
+        $entityManager->flush();
 
-            // ✅ SOFT DELETE
-            $product->setDeletedAt(new \DateTimeImmutable());
-            $entityManager->flush();
-        }
-
-        return $this->redirectToRoute('app_product_index');
+        return $this->json(['message' => 'Product soft-deleted']);
     }
 }

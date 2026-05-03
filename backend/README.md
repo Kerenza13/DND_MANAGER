@@ -14,19 +14,19 @@ This backend is a Symfony-based restaurant management system with:
 ## 🔐 Authentication
 
 ### Login
-`GET /login`
+`GET /api/login`
 
 **Response:**
 * Login page (Twig form)
 * Returns authentication error if login fails
 
 ### Logout
-`GET /logout`
+`GET /api/logout`
 
 * Handled automatically by Symfony firewall.
 
 ### Register
-`POST /register`
+`POST /api/register`
 
 **Behavior:**
 * Creates a new user
@@ -47,12 +47,12 @@ The system uses Symfony roles:
 | Role | Meaning |
 | :--- | :--- |
 | `ROLE_USER` | Normal customer |
-| `ROLE_WORKER` | Admin / staff |
+| `ROLE_WORKER` | Admin /api/ staff |
 
 ---
 
-## 🏠 Home / Dashboard
-`GET /`
+## 🏠 Home /api/ Dashboard
+`GET /api/`
 
 **Redirects:**
 * If not logged in → `/login`
@@ -66,7 +66,7 @@ The system uses Symfony roles:
 ## 📦 Products
 
 ### List Products
-`GET /product`
+`GET /api/product`
 
 **Access:**
 * Only `ROLE_WORKER`
@@ -76,19 +76,19 @@ The system uses Symfony roles:
 * Soft-deleted products are hidden
 
 ### Create Product
-`POST /product/new`
+`POST /api/product/new`
 
 **Access:**
 * `ROLE_WORKER`
 
 ### Edit Product
-`POST /product/{id}/edit`
+`POST /api/product/{id}/edit`
 
 **Rules:**
 * Cannot edit deleted products
 
 ### Soft Delete Product
-`POST /product/{id}`
+`POST /api/product/{id}`
 
 **Behavior:**
 * Product is NOT removed from database
@@ -103,7 +103,7 @@ The system uses Symfony roles:
 ## 🍔 Orders
 
 ### List Orders
-`GET /order`
+`GET /api/order`
 
 **Behavior:**
 | Role | Data visible |
@@ -112,7 +112,7 @@ The system uses Symfony roles:
 | `ROLE_USER` | Own active orders |
 
 ### Create Order
-`POST /order/new`
+`POST /api/order/new`
 
 **Flow:**
 * User selects products
@@ -125,7 +125,7 @@ The system uses Symfony roles:
 * Deleted products are hidden
 
 ### Complete Order
-`POST /order/{id}/complete`
+`POST /api/order/{id}/complete`
 
 **Behavior:**
 * Marks order as completed
@@ -133,7 +133,7 @@ The system uses Symfony roles:
 * Calculates total from order lines
 
 ### Soft Delete Order
-`POST /order/{id}`
+`POST /api/order/{id}`
 
 **Behavior:**
 * Sets: `deletedAt = now()`
@@ -143,7 +143,7 @@ The system uses Symfony roles:
 ## 🧾 Invoices
 
 ### List Invoices
-`GET /invoice`
+`GET /api/invoice`
 
 **Rules:**
 | Role | Visibility |
@@ -152,14 +152,14 @@ The system uses Symfony roles:
 | `ROLE_USER` | Own invoices |
 
 ### View Invoice
-`GET /invoice/{id}`
+`GET /api/invoice/{id}`
 
 **Security:**
 * Users can only view their own invoices
 * Workers can view all
 
 ### Generate PDF Invoice
-`GET /invoice/{id}/pdf`
+`GET /api/invoice/{id}/pdf`
 
 **Features:**
 * Fully hydrated data (order + products)
@@ -181,8 +181,8 @@ The system uses Symfony roles:
 ### Order
 * `id`
 * `user`
-* `status` (serving / completed)
-* `type` (dine_in / take_away)
+* `status` (serving /api/ completed)
+* `type` (dine_in /api/ take_away)
 * `createdAt`
 * `deletedAt` (soft delete)
 
