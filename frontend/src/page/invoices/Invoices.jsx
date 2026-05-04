@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../../context/AuthContext"; // Updated to use custom hook
+import { useAuth } from "../../context/AuthContext";
 import InvoiceCard from "../../components/InvoiceCard";
 import { useNavigate } from "react-router-dom";
 
@@ -9,24 +9,38 @@ function Invoices() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
-        const res = await authFetch("http://localhost:8000/invoice");
-        if (!res.ok) throw new Error("Failed to fetch invoices");
+        const res = await authFetch(`${API_URL}/invoice`);
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch invoices");
+        }
+
+        // safety check (prevents HTML crash)
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Invalid response (expected JSON)");
+        }
+
         const data = await res.json();
         setInvoices(data);
       } catch (err) {
-        console.error(err);
+        console.error("❌ fetchInvoices error:", err.message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchInvoices();
-  }, [authFetch]);
+  }, [authFetch, API_URL]);
 
-  if (loading) return <div className="p-8 text-center">Loading your invoices...</div>;
+  if (loading) {
+    return <div className="p-8 text-center">Loading your invoices...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto">

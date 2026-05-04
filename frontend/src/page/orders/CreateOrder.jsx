@@ -20,11 +20,12 @@ function CreateOrder() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await authFetch("http://localhost:8000/product");
+        const res = await authFetch(`${API_URL}/product`);
         const data = await res.json();
         setProducts(data);
       } catch (err) {

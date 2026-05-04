@@ -1,13 +1,15 @@
 import { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 import ProductCard from "../../components/ProductCard";
+  const API_URL = import.meta.env.VITE_API_URL;
 
 function ManageProducts() {
   const { authFetch } = useContext(AuthContext);
   const [products, setProducts] = useState([]);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchProducts = async () => {
-    const res = await authFetch("http://localhost:8000/product");
+    const res = await authFetch(`${API_URL}/api/product`);
     const data = await res.json();
     setProducts(data);
   };
@@ -17,7 +19,7 @@ function ManageProducts() {
   }, []);
 
   const handleDelete = async (id) => {
-    await authFetch(`http://localhost:8000/product/${id}`, {
+    await authFetch(`${API_URL}/api/product/${id}`, {
       method: "POST",
     });
 

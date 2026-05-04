@@ -5,9 +5,10 @@ import InvoiceCard from "../../components/InvoiceCard";
 function ManageInvoices() {
   const { authFetch } = useContext(AuthContext);
   const [invoices, setInvoices] = useState([]);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchInvoices = async () => {
-    const res = await authFetch("http://localhost:8000/invoice");
+    const res = await authFetch(`${API_URL}/api/invoice`);
     const data = await res.json();
     setInvoices(data);
   };

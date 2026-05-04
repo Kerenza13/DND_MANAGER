@@ -8,12 +8,6 @@ export const AuthProvider = ({ children }) => {
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // 🔥 DEBUG: confirm backend URL
-  console.log("🔌 API_URL =", API_URL);
-
-  // -------------------------
-  // LOAD SESSION USER
-  // -------------------------
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
 
@@ -28,10 +22,8 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // -------------------------
-  // SAFE FETCH WRAPPER (DEBUGGING ADDED)
-  // -------------------------
-  const safeFetch = async (url, options = {}) => {
+  // 🔥 FIXED FETCH WRAPPER
+  const authFetch = async (url, options = {}) => {
     console.log("➡️ REQUEST:", url);
 
     try {
@@ -45,45 +37,32 @@ export const AuthProvider = ({ children }) => {
       });
 
       console.log("⬅️ STATUS:", res.status);
-
       return res;
     } catch (err) {
-      console.error("❌ NETWORK ERROR (FAILED TO FETCH):", err);
-      throw new Error(
-        "Network error: backend unreachable (check API_URL / CORS / server)"
-      );
+      console.error("❌ NETWORK ERROR:", err);
+      throw new Error("Backend unreachable");
     }
   };
 
-  // -------------------------
-  // REGISTER
-  // -------------------------
+  // ✅ REGISTER (FIXED: NO /api HERE)
   const register = async (email, password, isWorker = false) => {
-    const res = await safeFetch(`${API_URL}/register`, {
+    const res = await authFetch(`${API_URL}/register`, {
       method: "POST",
       body: JSON.stringify({ email, password, isWorker }),
     });
 
-    const text = await res.text();
-
-    let data = {};
-    try {
-      data = JSON.parse(text);
-    } catch {}
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      console.log("❌ REGISTER ERROR RESPONSE:", text);
-      throw new Error(data.error || data.message || "Registration failed");
+      throw new Error(data.error || "Registration failed");
     }
 
     return data;
   };
 
-  // -------------------------
-  // LOGIN
-  // -------------------------
+  // ✅ LOGIN
   const login = async (email, password) => {
-    const res = await safeFetch(`${API_URL}/login`, {
+    const res = await authFetch(`${API_URL}/login`, {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
@@ -91,32 +70,29 @@ export const AuthProvider = ({ children }) => {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw new Error(data.message || data.error || "Login failed");
+      throw new Error(data.error || "Login failed");
     }
 
-    const userPayload = data.user;
+    localStorage.setItem("user", JSON.stringify(data.user));
+    setUser(data.user);
 
-    localStorage.setItem("user", JSON.stringify(userPayload));
-    setUser(userPayload);
-
-    return userPayload;
+    return data.user;
   };
 
-  // -------------------------
-  // LOGOUT
-  // -------------------------
+  // ✅ LOGOUT
   const logout = async () => {
-    await safeFetch(`${API_URL}/logout`, {
-      method: "POST",
-    });
-
-    localStorage.removeItem("user");
-    setUser(null);
+    try {
+      await authFetch(`${API_URL}/logout`, {
+        method: "POST",
+      });
+    } catch (err) {
+      console.error("Backend logout failed:", err);
+    } finally {
+      localStorage.removeItem("user");
+      setUser(null);
+    }
   };
 
-  // -------------------------
-  // ROLE CHECK
-  // -------------------------
   const isAdmin =
     user?.roles?.includes("ROLE_WORKER") ||
     user?.roles?.includes("ROLE_ADMIN");
@@ -129,6 +105,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        authFetch,
         loading,
         isAdmin,
       }}
@@ -138,15 +115,8 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// -------------------------
 export const useAuth = () => {
   const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
-
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 };
-
-export default AuthContext;

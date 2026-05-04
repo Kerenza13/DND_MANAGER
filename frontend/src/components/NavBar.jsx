@@ -8,10 +8,17 @@ function Navbar() {
 
   if (!user) return null;
 
-  const handleLogout = () => {
-    logout();
+const handleLogout = async () => {
+  try {
+    await logout(); // 👈 important
     navigate("/login");
-  };
+  } catch (err) {
+    console.error("Logout failed:", err);
+    // still force logout locally if backend fails
+    localStorage.removeItem("user");
+    navigate("/login");
+  }
+};
 
   // Helper to highlight active links
   const isActive = (path) => location.pathname === path ? "text-white" : "text-gray-400 hover:text-gray-200";
@@ -20,7 +27,7 @@ function Navbar() {
     <nav className="flex justify-between items-center px-6 py-4 bg-gray-900 text-white shadow-lg sticky top-0 z-50">
       <div className="flex items-center gap-8">
         <Link to="/" className="text-xl font-black tracking-tighter text-blue-400">
-          POS<span className="text-white">SYS</span>
+          PS<span className="text-white">SYS</span>
         </Link>
 
         <div className="flex gap-6 text-sm font-bold uppercase tracking-wider">

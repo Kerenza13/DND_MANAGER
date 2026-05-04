@@ -6,11 +6,12 @@ function OrderDetail() {
   const { id } = useParams();
   const { authFetch } = useAuth();
   const [order, setOrder] = useState(null);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await authFetch(`http://localhost:8000/order/${id}`);
+        const res = await authFetch(`${API_URL}/order/${id}`);
         const data = await res.json();
         setOrder(data);
       } catch (err) {

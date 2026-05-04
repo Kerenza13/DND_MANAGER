@@ -16,23 +16,20 @@ services:
       - restaurante_net
 
   backend:
-    build:
-      context: ./backend
-    container_name: restaurante_backend
-    ports:
-      - "8000:8000"
-    volumes:
+   build:
+     context: ./backend
+   container_name: restaurante_backend
+   ports:
+     - "8000:8000"
+   volumes:
       - ./backend:/app
-    environment:
-      DATABASE_URL: "mysql://manager:manager_clave@database:3306/restaurante_manager?serverVersion=8.0&charset=utf8mb4"
-      APP_ENV: dev
-      APP_SECRET: some_secret_key
-    depends_on:
-      database:
-        condition: service_healthy
-    command: php -S 0.0.0.0:8000 -t public
-    networks:
-      - restaurante_net
+   environment:
+     DATABASE_URL: "mysql://manager:manager_clave@database:3306/restaurante_manager?serverVersion=8.0&charset=utf8mb4"
+     APP_ENV: dev
+     APP_SECRET: some_secret_key
+   command: php -S 0.0.0.0:8000 -t public
+   networks:
+     - restaurante_net
 
   database:
     image: mysql:8.0

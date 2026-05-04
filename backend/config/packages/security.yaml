@@ -9,52 +9,45 @@ security:
                 property: email
 
     firewalls:
-        dev:
-            pattern: ^/(_profiler|_wdt|assets|build)/
-            security: false
-
-        # 🔌 API Firewall (React)
         api:
             pattern: ^/api
             stateless: true
             provider: app_user_provider
-            custom_authenticator: App\Security\LoginAuthenticator
 
-            # Since it is stateless, "logout" usually means the frontend deletes the token/session.
-            # However, to avoid the LogicException in your AuthController, we define it here:
+            json_login:
+                check_path: /api/login
+                username_path: email
+                password_path: password
+
             logout:
-                path: api_logout
+                path: /api/logout
 
-        # 🌐 WEB Firewall (Twig/Legacy)
+            # ✅ THIS must be inside api firewall
+            entry_point: security.authenticator.json_login.api
+
         main:
             lazy: true
             provider: app_user_provider
+
             form_login:
                 login_path: app_login
                 check_path: app_login
                 username_parameter: email
                 password_parameter: password
+
             logout:
                 path: app_logout
 
     access_control:
-      # API Public Routes
+      # PUBLIC
       - { path: ^/api/login, roles: PUBLIC_ACCESS }
       - { path: ^/api/register, roles: PUBLIC_ACCESS }
 
-      # API Secured Routes
-      # Match ProductController: requires ROLE_WORKER
-      - { path: ^/api/product, roles: ROLE_WORKER }
-      # Order and Invoice controllers handle their own fine-grained security (ROLE_USER or ROLE_WORKER)
+      # SECURED
       - { path: ^/api/order, roles: ROLE_USER }
-      - { path: ^/api/invoice, roles: ROLE_USER }
+      - { path: ^/api/product, roles: ROLE_WORKER }
       - { path: ^/api, roles: ROLE_USER }
 
-      # WEB Public Routes
+      # WEB
       - { path: ^/login, roles: PUBLIC_ACCESS }
       - { path: ^/register, roles: PUBLIC_ACCESS }
-      - { path: ^/$, roles: PUBLIC_ACCESS }
-
-      # WEB Secured Routes
-      - { path: ^/products, roles: ROLE_WORKER }
-      - { path: ^/, roles: ROLE_USER }

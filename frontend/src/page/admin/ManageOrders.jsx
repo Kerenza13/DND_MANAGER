@@ -5,9 +5,10 @@ import OrderCard from "../../components/OrderCard";
 function ManageOrders() {
   const { authFetch } = useContext(AuthContext);
   const [orders, setOrders] = useState([]);
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchOrders = async () => {
-    const res = await authFetch("http://localhost:8000/order");
+    const res = await authFetch(`${API_URL}/api/order`);
     const data = await res.json();
     setOrders(data);
   };
@@ -17,7 +18,7 @@ function ManageOrders() {
   }, []);
 
   const updateStatus = async (id, status) => {
-    await authFetch(`http://localhost:8000/order/${id}/complete`, {
+    await authFetch(`${API_URL}/api/order/${id}/complete`, {
       method: "POST",
       body: JSON.stringify({ status }),
     });

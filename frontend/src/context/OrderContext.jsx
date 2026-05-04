@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useMemo } from "react";
 import { useAuth } from "./AuthContext";
 
@@ -8,6 +7,7 @@ export const OrderProvider = ({ children }) => {
   const { authFetch } = useAuth();
   const [items, setItems] = useState([]);
   const [type, setType] = useState("take_away");
+
   const API_URL = import.meta.env.VITE_API_URL;
 
   const addProduct = (product) => {
@@ -45,34 +45,47 @@ export const OrderProvider = ({ children }) => {
   };
 
   const total = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    return items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   }, [items]);
 
+  /**
+   * ✅ FIXED CREATE ORDER
+   * Matches Symfony Controller:
+   * 1. Uses 'items' key instead of 'products'
+   * 2. Uses 'product_id' instead of 'id'
+   */
   const createOrder = async () => {
     if (items.length === 0) throw new Error("Order is empty");
 
     const payload = {
       type,
-      products: items.map((item) => ({
-        id: item.id,
-        quantity: item.quantity,
+      items: items.map((i) => ({
+        product_id: i.id, // Symfony expects product_id
+        quantity: i.quantity,
       })),
     };
 
-    // FIXED: Endpoint changed from /order/new to /api/order per your docs
-    const res = await authFetch(`${API_URL}/api/order`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await authFetch(`${API_URL}/order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || "Error creating order");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Error creating order");
+      }
+
+      clearOrder();
+      return data;
+    } catch (error) {
+      console.error("❌ Checkout Error:", error.message);
+      throw error;
     }
-
-    const data = await res.json();
-    clearOrder();
-    return data;
   };
 
   return (
@@ -96,6 +109,6 @@ export const OrderProvider = ({ children }) => {
 
 export const useOrder = () => {
   const context = useContext(OrderContext);
-  if (!context) throw new Error("useOrder must be used within an OrderProvider");
+  if (!context) throw new Error("useOrder must be used within OrderProvider");
   return context;
 };
